@@ -96,6 +96,21 @@ def _random_trim_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return rows[:n]
 
 
+def _filter_rows_non_empty(rows: List[Dict[str, Any]], attrs: List[str]) -> List[Dict[str, Any]]:
+    if not rows or not attrs:
+        return rows or []
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        ok = True
+        for a in attrs:
+            v = r.get(a, "")
+            if str(v).strip() == "":
+                ok = False
+                break
+        if ok:
+            out.append(r)
+    return out
+
 def _diversify_values(
     rows: List[Dict[str, Any]], *, protect_keys: Optional[List[str]] = None, allow_empty: bool = True
 ) -> List[Dict[str, Any]]:
@@ -190,7 +205,10 @@ def build_core_tabular(outputs, take_rows, p0: P0Guard):
         else:
             # CSV -> JSON (extract)
             rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
-            rows_for_in = _ensure_rows_have_keys(rows, attrs)
+            # 必須属性が空の行を除外（抽出系の品質ゲート）
+            rows_for_in = _filter_rows_non_empty(rows, attrs)
+            if not rows_for_in:
+                continue
             p = prompt_csv_to_json(get_safe_csv(rows_for_in, MAX_INPUT_CHARS), attrs)
             ans_obj = [{a: r.get(a, "") for a in attrs} for r in rows_for_in]
             ans = orjson.dumps(ans_obj).decode()
@@ -206,6 +224,7 @@ def build_core_xml_in(outputs, take_rows, p0: P0Guard):
         rows = _random_trim_rows(rows)
         attrs = _pick_attrs(cols, rows)
         rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
+        rows = _filter_rows_non_empty(rows, attrs)
         xml_in = get_safe_xml_input(rows, MAX_INPUT_CHARS)
         if not xml_in:
             continue
@@ -222,6 +241,9 @@ def build_core_gtfs(outputs, take_rows, p0: P0Guard):
         rows = _random_trim_rows(rows)
         attrs = _pick_attrs(cols, rows)
         rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
+        rows = _filter_rows_non_empty(rows, attrs)
+        if not rows:
+            continue
         p = prompt_text_to_json(rows_to_text(rows), attrs)
         ans = orjson.dumps([{a: r.get(a, "") for a in attrs} for r in rows]).decode()
         s = sample("G", "text_to_json", "extract", p, ans, seed)
