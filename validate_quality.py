@@ -19,7 +19,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import orjson
 import pandas as pd
-import tomllib
+try:
+    import tomllib  # Python 3.11+
+except Exception:
+    import tomli as tomllib  # Python 3.10 fallback
 import yaml
 
 from .config import OUT_DIR

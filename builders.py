@@ -412,7 +412,10 @@ def build_core_toml_out(outputs, take_rows, p0: P0Guard):
 
             p = prompt_toml_to_json(toml_s)
             # defer parse to caller if needed; here we return TOML string as prompt and JSON-ified parsed answer
-            import tomllib
+            try:
+                import tomllib  # Python 3.11+
+            except Exception:
+                import tomli as tomllib  # Python 3.10 fallback
 
             parsed = tomllib.loads(toml_s)
             ans = orjson.dumps(parsed).decode()

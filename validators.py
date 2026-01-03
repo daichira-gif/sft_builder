@@ -1,7 +1,10 @@
 from io import StringIO
 
 import pandas as pd
-import tomllib
+try:
+    import tomllib  # Python 3.11+
+except Exception:  # Python 3.10 fallback
+    import tomli as tomllib
 import yaml
 from lxml import etree
 
@@ -37,4 +40,3 @@ def validate_csv(s: str) -> bool:
         return True
     except Exception:
         return False
-
