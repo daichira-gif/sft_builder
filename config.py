@@ -77,6 +77,10 @@ ATTR_LENGTH_BIAS_PROB = float(os.environ.get("SFT_DIVERSIFY_ATTR_LENGTH_BIAS", "
 # Tabular routing: probability of selecting JSON->CSV (remaining goes to CSV->JSON)
 TABULAR_JSON_TO_CSV_PROB = _float_env("SFT_TABULAR_JSON_TO_CSV_PROB", 0.6)
 
+# Extraction allowance: how many attributes must be non-empty to keep a row
+# e.g., 1 allows partial empty fields; len(attrs) enforces all non-empty
+EXTRACT_MIN_FILLED = int(os.environ.get("SFT_EXTRACT_MIN_FILLED", "1"))
+
 # Optional budget overrides for key packs (others remain defaults unless added)
 def _int_env(name: str, default: int) -> int:
     try:

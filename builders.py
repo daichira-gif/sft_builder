@@ -25,6 +25,7 @@ from .config import (
     XML_OUT_PROBS,
     TOML_OUT_PROBS,
     YAML_OUT_PROBS,
+    EXTRACT_MIN_FILLED,
 )
 from .p0_guard import P0Guard
 
@@ -113,18 +114,13 @@ def _random_trim_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return rows[:n]
 
 
-def _filter_rows_non_empty(rows: List[Dict[str, Any]], attrs: List[str]) -> List[Dict[str, Any]]:
+def _filter_rows_min_filled(rows: List[Dict[str, Any]], attrs: List[str], min_filled: int) -> List[Dict[str, Any]]:
     if not rows or not attrs:
         return rows or []
     out: List[Dict[str, Any]] = []
     for r in rows:
-        ok = True
-        for a in attrs:
-            v = r.get(a, "")
-            if str(v).strip() == "":
-                ok = False
-                break
-        if ok:
+        filled = sum(1 for a in attrs if str(r.get(a, "")).strip() != "")
+        if filled >= max(0, min_filled):
             out.append(r)
     return out
 
@@ -222,8 +218,8 @@ def build_core_tabular(outputs, take_rows, p0: P0Guard):
         else:
             # CSV -> JSON (extract)
             rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
-            # 必須属性が空の行を除外（抽出系の品質ゲート）
-            rows_for_in = _filter_rows_non_empty(rows, attrs)
+            # 抽出系の品質ゲート（部分的空値許容: SFT_EXTRACT_MIN_FILLED）
+            rows_for_in = _filter_rows_min_filled(rows, attrs, min_filled=EXTRACT_MIN_FILLED)
             if not rows_for_in:
                 continue
             p = prompt_csv_to_json(get_safe_csv(rows_for_in, MAX_INPUT_CHARS), attrs)
@@ -241,7 +237,7 @@ def build_core_xml_in(outputs, take_rows, p0: P0Guard):
         rows = _random_trim_rows(rows)
         attrs = _pick_attrs(cols, rows)
         rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
-        rows = _filter_rows_non_empty(rows, attrs)
+        rows = _filter_rows_min_filled(rows, attrs, min_filled=EXTRACT_MIN_FILLED)
         xml_in = get_safe_xml_input(rows, MAX_INPUT_CHARS)
         if not xml_in:
             continue
@@ -258,7 +254,7 @@ def build_core_gtfs(outputs, take_rows, p0: P0Guard):
         rows = _random_trim_rows(rows)
         attrs = _pick_attrs(cols, rows)
         rows = _diversify_values(rows, protect_keys=attrs, allow_empty=False)
-        rows = _filter_rows_non_empty(rows, attrs)
+        rows = _filter_rows_min_filled(rows, attrs, min_filled=EXTRACT_MIN_FILLED)
         if not rows:
             continue
         p = prompt_text_to_json(rows_to_text(rows), attrs)
