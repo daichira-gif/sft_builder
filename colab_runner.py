@@ -39,13 +39,50 @@ def main():
     gtfs_rows_iter = rows_from_stream(streams["gtfs"][0], streams["gtfs"][1])
 
     def take_rows(src: str):
+        """Return ((rows, cols), seed) with iterator auto-reinit on exhaustion.
+
+        This guards against StopIteration when generation-time uniqueness and
+        filtering increase the number of required batches beyond a single pass
+        of each streaming iterator.
+        """
+        nonlocal shop_rows_iter, off_iters, gtfs_rows_iter
+
+        def _next_with_reinit_shopify():
+            nonlocal shop_rows_iter
+            try:
+                return next(shop_rows_iter)
+            except StopIteration:
+                # reinitialize from source
+                shop_rows_iter = rows_from_stream(streams["shopify"][0], streams["shopify"][1])
+                return next(shop_rows_iter)
+
+        def _next_with_reinit_offfacts(cfg: str):
+            nonlocal off_iters
+            it = off_iters.get(cfg)
+            if it is None:
+                it = rows_from_stream(streams["openfoodfacts"][0][cfg][0], streams["openfoodfacts"][0][cfg][1])
+                off_iters[cfg] = it
+            try:
+                return next(it)
+            except StopIteration:
+                off_iters[cfg] = rows_from_stream(streams["openfoodfacts"][0][cfg][0], streams["openfoodfacts"][0][cfg][1])
+                return next(off_iters[cfg])
+
+        def _next_with_reinit_gtfs():
+            nonlocal gtfs_rows_iter
+            try:
+                return next(gtfs_rows_iter)
+            except StopIteration:
+                gtfs_rows_iter = rows_from_stream(streams["gtfs"][0], streams["gtfs"][1])
+                return next(gtfs_rows_iter)
+
         if src == "shopify":
-            return next(shop_rows_iter), "shopify"
+            return _next_with_reinit_shopify(), "shopify"
         if src == "openfoodfacts":
             cfg = random.choice(off_cfgs)
-            return next(off_iters[cfg]), f"openfoodfacts:{cfg}"
+            return _next_with_reinit_offfacts(cfg), f"openfoodfacts:{cfg}"
         if src == "gtfs":
-            return next(gtfs_rows_iter), "gtfs"
+            return _next_with_reinit_gtfs(), "gtfs"
         raise ValueError(src)
 
     outputs = make_outputs_dict()
