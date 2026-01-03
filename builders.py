@@ -27,6 +27,9 @@ from .config import (
     YAML_OUT_PROBS,
 )
 from .p0_guard import P0Guard
+
+# In-run uniqueness tracking: file name -> set of seen sample ids
+_SEEN_IDS: Dict[str, set] = {}
 from .prompts import (
     prompt_csv_to_json,
     prompt_json_to_csv,
@@ -83,6 +86,20 @@ def append_with_p0(outputs: Dict[str, List[Dict[str, Any]]], fname: str, s_obj: 
     keep, _ = p0.reject_if_0valid(s_obj["messages"], sample_meta=meta)
     if not keep:
         return False
+    # Generation-time uniqueness: skip if this id already seen for the target file
+    rid = s_obj.get("id")
+    if rid is None:
+        # Fallback to hash of messages content
+        try:
+            import hashlib
+            rid = hashlib.sha1(orjson.dumps(s_obj.get("messages", []))).hexdigest()
+        except Exception:
+            rid = None
+    seen = _SEEN_IDS.setdefault(fname, set())
+    if rid is not None and rid in seen:
+        return False
+    if rid is not None:
+        seen.add(rid)
     outputs[fname].append(s_obj)
     return True
 
