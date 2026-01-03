@@ -22,6 +22,9 @@ from .config import (
     PROB_CASE,
     ATTR_LENGTH_BIAS_PROB,
     TABULAR_JSON_TO_CSV_PROB,
+    XML_OUT_PROBS,
+    TOML_OUT_PROBS,
+    YAML_OUT_PROBS,
 )
 from .p0_guard import P0Guard
 from .prompts import (
