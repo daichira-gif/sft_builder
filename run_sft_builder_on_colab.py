@@ -14,17 +14,19 @@
 
 import os
 import sys
+import pathlib
 
 print("🔩 ステップ 1: セットアップを開始します...")
 
-# 注意: 以前のバージョンでは外部リポジトリ(`/content/sft_builder`)をクローンして
-# `sft_builder` モジュールを実行していましたが、その構成では依存関係不整合や
-# 未定義変数（XML_OUT_PROBS 等）で失敗する場合がありました。
-# 本スクリプトでは、このリポジトリ内の `StructEvalT.sft_builder` を直接実行します。
-# ノートブック上では、作業ディレクトリに本リポジトリ（少なくとも `StructEvalT/`）が
-# 存在することを前提とします。
+# リポジトリをクローン（Colab 標準）
+print("GitHub リポジトリをクローンします...")
+!rm -rf /content/sft_builder
+!git clone -q https://github.com/daichira-gif/sft_builder.git /content/sft_builder
+
+# Python パスを追加
 if '/content' not in sys.path:
-    sys.path.append('/content')
+    sys.path.insert(0, '/content')
+print("sys.path 追加: /content (sft_builder をパッケージとして解決)")
 
 # 依存関係をインストール
 !pip install -q -U datasets pandas pyarrow lxml orjson pyyaml transformers huggingface_hub tomli
@@ -79,7 +81,7 @@ print(f"   - 出力ディレクトリ: {os.environ['SFT_OUT_DIR']}")
 
 print("\n⏳ ステップ 3: データセットの合成を開始します...")
 
-!python -m StructEvalT.sft_builder.colab_runner
+!python -m sft_builder.colab_runner
 
 print("\n✅ データセットの合成が完了しました。")
 
@@ -93,10 +95,10 @@ print("\n✅ データセットの合成が完了しました。")
 print("\n🔍 ステップ 4: 生成データの検証を開始します...")
 
 print("\n--- 形式検証 (validate_outputs) ---")
-!python -m StructEvalT.sft_builder.validate_outputs
+!python -m sft_builder.validate_outputs
 
 print("\n--- 品質検証 (validate_quality) ---")
-!python -m StructEvalT.sft_builder.validate_quality
+!python -m sft_builder.validate_quality
 
 print("\n✅ 生成データの検証が完了しました。")
 
