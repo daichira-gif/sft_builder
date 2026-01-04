@@ -1,7 +1,7 @@
 """Validate generated JSONL packs for structural and syntax correctness.
 
 Usage:
-  python -m StructEvalT.sft_builder.validate_outputs
+  python -m sft_builder.validate_outputs
 
 It reads files under OUT_DIR (config.py) and validates each assistant output
 against the intended subcategory/format.

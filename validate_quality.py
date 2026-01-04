@@ -7,7 +7,7 @@ Checks:
 - Distribution summaries (rows/attrs/cell lengths) from prompts/answers
 
 Run:
-  python -m StructEvalT.sft_builder.validate_quality
+  python -m sft_builder.validate_quality
 """
 from __future__ import annotations
 
@@ -39,6 +39,11 @@ FILES = [
     "sft_core_c_yaml_out_min.jsonl",
     "sft_core_g_gtfs.jsonl",
     "sft_pack_hard_mixed.jsonl",
+    # New schema-driven packs
+    "sft_core_c_text_to_json_schema.jsonl",
+    "sft_core_c_text_to_json_schema_nested.jsonl",
+    "sft_core_c_text_to_yaml_schema.jsonl",
+    "sft_core_c_text_to_toml_schema.jsonl",
 ]
 
 
